@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherSphere Forecast</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-blue: #00355f;
+            --accent-blue: #0072ce;
+            --bg-grey: #f2f2f2;
+            --text-dark: #2b2b2b;
+            --globe-width: 300px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-grey);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
+
+        /* --- AUTOCOMPLETE CSS --- */
+        /* The container for the search input + suggestion list */
+        .search-wrapper { position: relative; width: 100%; max-width: 500px; }
+        
+        .nav-search-wrapper { max-width: 400px; animation: fadeIn 0.5s ease-in; }
+
+        /* The Input Field */
+        .city-input {
+            width: 100%; padding: 12px 15px; border-radius: 4px; border: none; font-size: 1rem;
+            outline: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        /* The Dropdown List */
+        .suggestions-list {
+            position: absolute;
+            top: 100%; left: 0; right: 0;
+            background: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none; /* Hidden by default */
+        }
+
+        .suggestion-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #333;
+            text-align: left;
+        }
+
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background-color: #f0f8ff; color: var(--accent-blue); }
+        
+        .suggestion-main { font-weight: 600; }
+        .suggestion-sub { font-size: 0.85rem; color: #777; }
+
+        /* Landing Page Search Specifics */
+        .hero-search-wrapper { margin: auto; max-width: 600px; }
+        .hero-search-wrapper .city-input {
+            padding: 20px 25px; border-radius: 50px; border: 1px solid #ddd;
+            font-size: 1.2rem;
+        }
+        .hero-search-wrapper .suggestions-list { border-radius: 10px; margin-top: 5px; }
+        .hero-search-wrapper button {
+            position: absolute; right: 5px; top: 5px; bottom: 5px;
+            border-radius: 50px; background-color: var(--primary-blue);
+            color: white; border: none; padding: 0 30px; font-weight: bold; cursor: pointer;
+        }
+
+        /* Nav Page Search Specifics */
+        .nav-search-wrapper .city-input { border-radius: 4px; }
+        .nav-search-wrapper button {
+            position: absolute; right: 2px; top: 2px; bottom: 2px;
+            border-radius: 3px; background-color: var(--accent-blue);
+            color: white; border: none; padding: 0 15px; font-weight: bold; cursor: pointer;
+        }
+
+        /* --- REST OF STYLES (Animations, Globe, Cards) --- */
+        .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; flex: 1; }
+        .landing-container { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70vh; text-align: center; }
+        
+        /* Globe */
+        .globe-wrapper { width: var(--globe-width); height: var(--globe-width); position: relative; margin-bottom: 40px; border-radius: 50%; box-shadow: -15px -15px 30px rgba(255,255,255,0.5), inset 0 0 40px rgba(0,0,0,0.5); overflow: hidden; background-color: #000; }
+        .globe-map { position: absolute; top: 0; left: 0; width: 400%; height: 100%; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/The_earth_at_night.jpg/1280px-The_earth_at_night.jpg') repeat-x; background-size: 25% 100%; opacity: 0.9; animation: spinEarth 45s linear infinite; }
+        .data-point { position: absolute; width: 8px; height: 8px; background: radial-gradient(circle, #00ff88 20%, transparent 70%); border-radius: 50%; animation: flashPoint 1.5s ease-out forwards; }
+        
+        .landing-title { font-size: 2.5rem; font-weight: 700; color: var(--primary-blue); margin-bottom: 10px; }
+        .landing-subtitle { color: #666; margin-bottom: 30px; font-size: 1.1rem; }
+
+        /* Dashboard */
+        .weather-dashboard { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .location-header { font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
+        .current-flex { display: flex; align-items: center; justify-content: space-between; }
+        .temp-huge { font-size: 5rem; font-weight: 700; color: var(--text-dark); }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .detail-item { background: #f9f9f9; padding: 15px; border-radius: 5px; }
+        .detail-value { font-size: 1.2rem; font-weight: 600; margin-top: 5px; }
+        
+        /* Utils */
+        .slide-in-left { animation: slideInLeft 0.7s forwards; opacity: 0; }
+        .fade-in-up { animation: fadeInUp 0.7s forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.2s; }
+        .error-banner { background: #ffebee; color: #c62828; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ef9a9a; }
+
+        @keyframes spinEarth { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes flashPoint { 0% { opacity: 0; transform: scale(0.2); } 50% { opacity: 1; transform: scale(1.8); } 100% { opacity: 0; transform: scale(0.2); } }
+        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="logo">WeatherSphere</div>
+        
+        <% if(weather) { %>
+            <form action="/" method="post" class="search-wrapper nav-search-wrapper">
+                <input type="text" name="city" class="city-input" placeholder="Search City..." autocomplete="off" required>
+                <div class="suggestions-list"></div> <button type="submit">SEARCH</button>
+            </form>
+        <% } %>
+    </div>
+
+    <div class="container">
+        <% if(error) { %>
+            <div class="error-banner"><%= error %></div>
+        <% } %>
+
+        <% if(!weather) { %>
+            <div class="landing-container">
+                <div class="globe-wrapper" id="globeContainer">
+                    <div class="globe-map"></div>
+                </div>
+
+                <div class="landing-content">
+                    <div class="landing-title">Global Weather Intelligence</div>
+                    <div class="landing-subtitle">Real-time hyper-local forecasts for any location on Earth.</div>
+                    
+                    <form action="/" method="post" class="search-wrapper hero-search-wrapper">
+                        <input type="text" name="city" class="city-input" placeholder="Enter City, Zip, or Place..." autocomplete="off" required autofocus>
+                        <div class="suggestions-list"></div> <button type="submit">Search</button>
+                    </form>
+                </div>
+            </div>
+
+            <script>
+                const globeContainer = document.getElementById('globeContainer');
+                function createDataPoint() {
+                    const dot = document.createElement('div');
+                    dot.classList.add('data-point');
+                    const topPos = Math.random() * 70 + 15; 
+                    const leftPos = Math.random() * 70 + 15;
+                    dot.style.top = `${topPos}%`;
+                    dot.style.left = `${leftPos}%`;
+                    globeContainer.appendChild(dot);
+                    setTimeout(() => dot.remove(), 1500);
+                }
+                setInterval(createDataPoint, 500);
+                createDataPoint(); 
+            </script>
+
+        <% } else { %>
+            <div class="weather-dashboard">
+                <div class="card slide-in-left">
+                    <div class="location-header"><%= weather.city %><%= weather.state %>, <%= weather.country %></div>
+                    <div class="time-stamp"><%= weather.time %> | Current Conditions</div>
+                    <div class="current-flex">
+                        <div>
+                            <div class="temp-huge"><%= weather.temp %>°</div>
+                            <div style="font-size: 1.5rem; text-transform: capitalize;"><%= weather.description %></div>
+                        </div>
+                        <img src="<%= weather.icon %>" alt="Weather Icon" style="width: 120px; animation: fadeInUp 2s infinite alternate;">
+                    </div>
+                </div>
+                <div class="card fade-in-up delay-1">
+                    <div style="font-weight: 700; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; color: #555;">Current Details</div>
+                    <div class="details-grid">
+                        <div class="detail-item"><div>RealFeel®</div><div class="detail-value"><%= weather.feelsLike %>°</div></div>
+                        <div class="detail-item"><div>Humidity</div><div class="detail-value"><%= weather.humidity %>%</div></div>
+                        <div class="detail-item"><div>Wind</div><div class="detail-value"><%= weather.windSpeed %> km/h</div></div>
+                        <div class="detail-item"><div>Visibility</div><div class="detail-value"><%= weather.visibility %> km</div></div>
+                        <div class="detail-item"><div>Pressure</div><div class="detail-value"><%= weather.pressure %> mb</div></div>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+    </div>
+
+    <script>
+        // Use querySelector to find whichever input exists on the page (landing OR navbar)
+        const searchInput = document.querySelector('.city-input');
+        const suggestionsBox = document.querySelector('.suggestions-list');
+        const searchForm = document.querySelector('.search-wrapper');
+
+        if(searchInput) {
+            let debounceTimer;
+
+            searchInput.addEventListener('input', function() {
+                const query = this.value;
+                
+                // Clear previous timer (Debouncing: prevents API spam)
+                clearTimeout(debounceTimer);
+                
+                if (query.length < 3) {
+                    suggestionsBox.style.display = 'none';
+                    return;
+                }
+
+                // Wait 300ms after user stops typing to call API
+                debounceTimer = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/suggest?q=${query}`);
+                        const data = await res.json();
+                        
+                        // Clear old suggestions
+                        suggestionsBox.innerHTML = '';
+
+                        if (data.length > 0) {
+                            suggestionsBox.style.display = 'block';
+                            
+                            data.forEach(place => {
+                                const div = document.createElement('div');
+                                div.className = 'suggestion-item';
+                                
+                                // Format: "London" (City) | "England, GB" (Sub)
+                                const stateStr = place.state ? `${place.state}, ` : '';
+                                div.innerHTML = `
+                                    <span class="suggestion-main">${place.name}</span>
+                                    <span class="suggestion-sub">${stateStr}${place.country}</span>
+                                `;
+                                
+                                // When clicking a suggestion
+                                div.addEventListener('click', () => {
+                                    // 1. Fill input with: City, State, Country
+                                    searchInput.value = `${place.name}, ${place.country}`;
+                                    // 2. Hide suggestions
+                                    suggestionsBox.style.display = 'none';
+                                    // 3. OPTIONAL: Automatically submit the form
+                                    searchForm.submit();
+                                });
+                                
+                                suggestionsBox.appendChild(div);
+                            });
+                        } else {
+                            suggestionsBox.style.display = 'none';
+                        }
+                    } catch (err) {
+                        console.error("Error fetching suggestions:", err);
+                    }
+                }, 300);
+            });
+
+            // Hide dropdown if clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchForm.contains(e.target)) {
+                    suggestionsBox.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
