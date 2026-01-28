@@ -3,7 +3,7 @@
 > **Real-time hyper-local weather intelligence.**
 
 ![WeatherSphere Preview](https://via.placeholder.com/800x400?text=Add+Your+Screenshot+Here)
-*(Tip: Replace this link with a screenshot of your actual dashboard)*
+
 
 WeatherSphere is a modern full-stack Node.js application that transforms raw meteorological data into a stunning, interactive dashboard. It features a cinematic 3D digital globe, smart autocomplete search, and dynamic visualization of live weather conditions for any city on Earth.
 
